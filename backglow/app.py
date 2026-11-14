@@ -102,7 +102,7 @@ def cli(args):
     try:
         state = monitor.read()
         if args[0] == "--status":
-            print(f"{state['model']}  {state['strengths'][state['strength']].lower()}  {state['modes'][state['mode']].lower()}  {state['patterns'][state['pattern']].lower()}  #{''.join(f'{round(state[k] * 255 / 100):02x}' for k in ('bgR', 'bgG', 'bgB'))}")
+            print(f"{state['model']}  {state['strengths'][state['strength']].lower()}  {state['modes'][state['mode']].lower()}  {state['patterns'][state['pattern']].lower()}  {state['bg']}")
             return
         if len(args) < 2:
             sys.exit(usage)

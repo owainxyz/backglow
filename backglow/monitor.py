@@ -153,6 +153,8 @@ def read():
         out[key] = cur
         if key == "mode":
             out["modes"] = modeLists.get(top, [f"Mode {i}" for i in range(top + 1)])
+    out["bg"] = fromPercent(out["bgR"], out["bgG"], out["bgB"])
+    out["fg"] = fromPercent(out["fgR"], out["fgG"], out["fgB"])
     out["strengths"] = strengths
     out["patterns"] = patterns
     return out
@@ -171,8 +173,15 @@ def write(key, value):
     setCode(bus, codes[key], value)
 
 
+whiteBalance = (1.0, 0.85, 0.6)
+
+
 def toPercent(hexColour):
-    return [round(int(hexColour[i:i + 2], 16) * 100 / 255) for i in (1, 3, 5)]
+    return [round(int(hexColour[i:i + 2], 16) * 100 / 255 * w) for i, w in zip((1, 3, 5), whiteBalance)]
+
+
+def fromPercent(r, g, b):
+    return "#" + "".join(f"{min(255, round(v * 255 / 100 / w)):02x}" for v, w in zip((r, g, b), whiteBalance))
 
 
 def setColour(hexColour, which="bg"):

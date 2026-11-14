@@ -13,10 +13,6 @@ function toast(text, kind = "") {
   setTimeout(() => { el.classList.add("out"); setTimeout(() => el.remove(), 250); }, 2400);
 }
 
-function hex(r, g, b) {
-  return "#" + [r, g, b].map((v) => Math.round(v * 255 / 100).toString(16).padStart(2, "0")).join("");
-}
-
 function seg(el, options, current, onPick) {
   el.replaceChildren();
   options.forEach((name, i) => {
@@ -78,8 +74,8 @@ function render() {
   seg($("strength"), m.strengths, m.strength, (i) => setField("strength", i));
   seg($("pattern"), m.patterns, m.pattern, (i) => setField("pattern", i));
   $("custom").classList.toggle("disabled", m.patterns[m.pattern] !== "Custom");
-  setSwatch("bg", hex(m.bgR, m.bgG, m.bgB));
-  setSwatch("fg", hex(m.fgR, m.fgG, m.fgB));
+  setSwatch("bg", m.bg);
+  setSwatch("fg", m.fg);
   kv([["Model", m.model], ["Bus", "/dev/i2c-" + m.bus], ["Effect", m.modes[m.mode]], ["Colour", m.patterns[m.pattern]], ["Brightness", m.strengths[m.strength]]]);
 }
 
@@ -106,8 +102,7 @@ function sendColour(which, value) {
   const custom = m.patterns.indexOf("Custom");
   if (m.pattern !== custom) setField("pattern", custom);
   api.colour(which, value);
-  const n = parseInt(value.slice(1), 16);
-  [which + "R", which + "G", which + "B"].forEach((k, i) => { m[k] = Math.round(((n >> (16 - i * 8)) & 255) * 100 / 255); });
+  m[which] = value;
 }
 
 function settleColour(which, value) {
