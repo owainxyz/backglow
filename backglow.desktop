@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=backglow
+Comment=Light FX control for AOC AGON monitors
+Exec=backglow
+Icon=backglow
+Terminal=false
+Categories=Utility;Settings;HardwareSettings;
