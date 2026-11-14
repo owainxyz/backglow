@@ -17,8 +17,9 @@ modeLists = {
     16: ["CS", "Audio 1", "Audio 2", "Static", "Dark Point Sweep", "Gradient Shift", "Spread Fill", "Drip Fill", "Spreading Drip Fill", "Breathing", "Light Point Sweep", "Zoom", "Rainbow", "Wave", "Flashing", "Demo"],
 }
 
+writeGap = 0.09
 lock = threading.Lock()
-cache = {"bus": None, "model": None}
+cache = {"bus": None, "model": None, "tops": {}}
 
 
 class MonitorError(Exception):
@@ -87,7 +88,7 @@ def transact(bus, payload, reply=True):
             fd = openBus(bus, ddcAddr)
             try:
                 os.write(fd, frame(payload))
-                time.sleep(0.05 if reply else 0.12)
+                time.sleep(0.05 if reply else writeGap)
                 if not reply:
                     return None
                 r = os.read(fd, 16)
@@ -117,7 +118,6 @@ def getCode(bus, code):
 
 def setCode(bus, code, value):
     transact(bus, [0x03, page[0], page[1], code, (value >> 8) & 0xFF, value & 0xFF], reply=False)
-    time.sleep(0.15)
 
 
 def find():
@@ -149,6 +149,7 @@ def read():
     out = {"model": model, "bus": bus}
     for key, code in codes.items():
         top, cur = getCode(bus, code)
+        cache["tops"][key] = top
         out[key] = cur
         if key == "mode":
             out["modes"] = modeLists.get(top, [f"Mode {i}" for i in range(top + 1)])
@@ -160,8 +161,11 @@ def read():
 def write(key, value):
     if key not in codes:
         raise MonitorError("bad key")
-    bus, _ = find()
-    top, _ = getCode(bus, codes[key])
+    bus = cache["bus"]
+    if bus is None or key not in cache["tops"]:
+        read()
+        bus = cache["bus"]
+    top = cache["tops"][key]
     if not isinstance(value, int) or isinstance(value, bool) or not 0 <= value <= top:
         raise MonitorError("bad value")
     setCode(bus, codes[key], value)

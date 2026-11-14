@@ -89,34 +89,31 @@ async function load() {
   render();
 }
 
-async function setField(key, value) {
+function setField(key, value) {
   if (!st || !st.monitor) return;
-  const prev = st.monitor[key];
   st.monitor[key] = value;
   render();
-  const r = await api.set(key, value);
-  if (r.error) {
-    st.monitor[key] = prev;
-    render();
-    toast(r.error, "bad");
-  }
+  api.set(key, value);
 }
 
-function pushColour(which, value) {
+window.onWriteError = (text) => { toast(text, "bad"); load(); };
+
+function sendColour(which, value) {
+  clearTimeout(colourTimer[which]);
+  setSwatch(which, value);
+  if (!st || !st.monitor) return;
+  const m = st.monitor;
+  const custom = m.patterns.indexOf("Custom");
+  if (m.pattern !== custom) setField("pattern", custom);
+  api.colour(which, value);
+  const n = parseInt(value.slice(1), 16);
+  [which + "R", which + "G", which + "B"].forEach((k, i) => { m[k] = Math.round(((n >> (16 - i * 8)) & 255) * 100 / 255); });
+}
+
+function settleColour(which, value) {
   setSwatch(which, value);
   clearTimeout(colourTimer[which]);
-  colourTimer[which] = setTimeout(async () => {
-    if (!st || !st.monitor) return;
-    const m = st.monitor;
-    const custom = m.patterns.indexOf("Custom");
-    if (m.pattern !== custom) {
-      await setField("pattern", custom);
-    }
-    const r = await api.colour(which, value);
-    if (r.error) return toast(r.error, "bad");
-    const n = parseInt(value.slice(1), 16);
-    [which + "R", which + "G", which + "B"].forEach((k, i) => { m[k] = Math.round(((n >> (16 - i * 8)) & 255) * 100 / 255); });
-  }, 180);
+  colourTimer[which] = setTimeout(() => sendColour(which, value), 1000);
 }
 
 function init() {
@@ -131,11 +128,12 @@ function init() {
     b.className = "sw";
     b.style.setProperty("--c", c);
     b.title = c;
-    b.addEventListener("click", () => pushColour("bg", c));
+    b.addEventListener("click", () => sendColour("bg", c));
     box.appendChild(b);
   });
-  $("bgColor").addEventListener("input", (e) => pushColour("bg", e.target.value));
-  $("fgColor").addEventListener("input", (e) => pushColour("fg", e.target.value));
+  ["bg", "fg"].forEach((w) => {
+    $(w + "Color").addEventListener("input", (e) => settleColour(w, e.target.value));
+  });
   $("reloadBtn").addEventListener("click", load);
   $("powerBtn").addEventListener("click", () => st && st.monitor && setField("strength", st.monitor.strength ? 0 : lastOn));
   $("copyRule").addEventListener("click", async () => {

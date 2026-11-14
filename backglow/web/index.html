@@ -36,36 +36,30 @@
         </div>
       </header>
 
-      <div class="fx-grid">
-        <div class="col">
-          <div class="card">
-            <div class="card-head"><h2>Effect</h2></div>
-            <div class="modes" id="modes"></div>
-          </div>
-        </div>
-        <div class="col side">
-          <div class="card">
-            <div class="card-head"><h2>Brightness</h2></div>
-            <div class="seg" id="strength"></div>
-          </div>
-          <div class="card">
-            <div class="card-head"><h2>Colour</h2></div>
-            <div class="seg" id="pattern"></div>
-            <div class="custom" id="custom">
-              <div class="picker-row">
-                <label>Primary</label>
-                <label class="sw big" id="bgSw"><input type="color" id="bgColor" value="#ff5900"><span></span></label>
-                <span class="mono" id="bgHex">#ff5900</span>
-              </div>
-              <div class="swatches" id="presets"></div>
-              <div class="picker-row">
-                <label>Secondary</label>
-                <label class="sw big" id="fgSw"><input type="color" id="fgColor" value="#808080"><span></span></label>
-                <span class="mono" id="fgHex">#808080</span>
-              </div>
+      <div class="fx-top">
+        <div class="card">
+          <div class="card-head"><h2>Colour</h2></div>
+          <div class="seg" id="pattern"></div>
+          <div class="custom" id="custom">
+            <div class="picker-row">
+              <label class="sw big" id="bgSw"><input type="color" id="bgColor" value="#ff5900"><span></span></label>
+              <div class="picker-text"><span class="label">Primary</span><span class="mono" id="bgHex">#ff5900</span></div>
+            </div>
+            <div class="swatches" id="presets"></div>
+            <div class="picker-row">
+              <label class="sw big" id="fgSw"><input type="color" id="fgColor" value="#808080"><span></span></label>
+              <div class="picker-text"><span class="label">Secondary</span><span class="mono" id="fgHex">#808080</span></div>
             </div>
           </div>
         </div>
+        <div class="card">
+          <div class="card-head"><h2>Brightness</h2></div>
+          <div class="seg" id="strength"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>Effect</h2></div>
+        <div class="modes" id="modes"></div>
       </div>
     </section>
 

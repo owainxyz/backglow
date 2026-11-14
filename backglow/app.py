@@ -1,4 +1,4 @@
-import base64, hashlib, json, os, re, sys
+import base64, hashlib, json, os, re, sys, threading
 
 from . import __version__, monitor
 
@@ -12,6 +12,12 @@ def errorText(e):
 
 
 class Api:
+    def __init__(self):
+        self._window = None
+        self._pending = {}
+        self._cond = threading.Condition()
+        threading.Thread(target=self._writer, daemon=True).start()
+
     def state(self):
         try:
             return {"version": __version__, "monitor": monitor.read()}
@@ -19,22 +25,35 @@ class Api:
             return {"version": __version__, "monitor": None, "error": errorText(e)}
 
     def set(self, key, value):
-        if key not in fields:
+        if key not in fields or not isinstance(value, int) or isinstance(value, bool):
             return {"error": "Bad value"}
-        try:
-            monitor.write(key, value)
-            return {"ok": True}
-        except monitor.MonitorError as e:
-            return {"error": errorText(e)}
+        self._queue(key, lambda: monitor.write(key, value))
+        return {"ok": True}
 
     def colour(self, which, value):
         if which not in ("fg", "bg") or not isinstance(value, str) or not hexColour.match(value):
             return {"error": "Bad value"}
-        try:
-            monitor.setColour(value, which)
-            return {"ok": True}
-        except monitor.MonitorError as e:
-            return {"error": errorText(e)}
+        self._queue(which, lambda: monitor.setColour(value, which))
+        return {"ok": True}
+
+    def _queue(self, key, job):
+        with self._cond:
+            self._pending.pop(key, None)
+            self._pending[key] = job
+            self._cond.notify()
+
+    def _writer(self):
+        while True:
+            with self._cond:
+                while not self._pending:
+                    self._cond.wait()
+                key = next(iter(self._pending))
+                job = self._pending.pop(key)
+            try:
+                job()
+            except monitor.MonitorError as e:
+                if self._window:
+                    self._window.evaluate_js(f"window.onWriteError && window.onWriteError({json.dumps(errorText(e))})")
 
 
 def page():
@@ -64,7 +83,8 @@ def page():
 
 def gui():
     import webview
-    webview.create_window("backglow", html=page(), js_api=Api(), width=1060, height=720, min_size=(860, 600), background_color="#0a0a0a", text_select=False)
+    api = Api()
+    api._window = webview.create_window("backglow", html=page(), js_api=api, width=1060, height=720, min_size=(640, 480), background_color="#0a0a0a", text_select=False)
     webview.start(gui="gtk", debug=False, private_mode=True)
 
 
