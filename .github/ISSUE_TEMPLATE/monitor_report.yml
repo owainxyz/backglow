@@ -1,0 +1,39 @@
+name: Monitor report
+description: Report how backglow works with a specific monitor
+labels: [monitor]
+body:
+  - type: input
+    id: model
+    attributes:
+      label: Monitor model
+      placeholder: AOC AGON PRO AG276QKD2
+    validations:
+      required: true
+  - type: textarea
+    id: status
+    attributes:
+      label: backglow --status
+      render: text
+    validations:
+      required: true
+  - type: dropdown
+    id: works
+    attributes:
+      label: Light FX control
+      options:
+        - Works
+        - Works with issues
+        - Does not work
+    validations:
+      required: true
+  - type: textarea
+    id: caps
+    attributes:
+      label: Capabilities
+      description: Output of `ddcutil capabilities --verbose`, the line starting with "Unparsed capabilities string".
+      render: text
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Effect names that are wrong, colours that look off, anything else.

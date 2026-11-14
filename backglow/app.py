@@ -8,7 +8,7 @@ fields = ("strength", "mode", "pattern")
 
 
 def errorText(e):
-    return {"no access": "No access", "no monitor": "No monitor", "no reply": "No reply", "bad value": "Bad value", "bad key": "Bad value"}.get(str(e), "Failed")
+    return {"no access": "No access", "no monitor": "No monitor", "no reply": "No reply", "bad value": "Bad value", "bad key": "Bad value", "busy": "Busy"}.get(str(e), "Failed")
 
 
 class Api:

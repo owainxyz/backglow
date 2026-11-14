@@ -26,6 +26,7 @@
       nixosModules.default = { pkgs, ... }: {
         environment.systemPackages = [ self.packages.${pkgs.system}.default ];
         services.udev.packages = [ self.packages.${pkgs.system}.default ];
+        boot.kernelModules = [ "i2c-dev" ];
       };
     };
 }

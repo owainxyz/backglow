@@ -1,4 +1,4 @@
-import fcntl, glob, os, re, threading, time
+import contextlib, fcntl, glob, os, re, stat, threading, time
 
 i2cSlave = 0x0703
 ddcAddr = 0x37
@@ -34,12 +34,56 @@ def frame(payload):
     return pkt + bytes([chk])
 
 
-def openBus(bus, addr):
+i2cMajor = 89
+
+
+def displayBus(bus):
+    if not isinstance(bus, int) or isinstance(bus, bool) or bus < 0:
+        return False
     try:
-        fd = os.open(f"/dev/i2c-{bus}", os.O_RDWR | os.O_CLOEXEC)
+        path = os.path.realpath(f"/sys/class/i2c-dev/i2c-{bus}/device")
+    except OSError:
+        return False
+    while path.startswith("/sys/devices/") and path != "/sys/devices":
+        try:
+            with open(os.path.join(path, "class")) as f:
+                return f.read(16).strip().startswith("0x03")
+        except OSError:
+            path = os.path.dirname(path)
+    return False
+
+
+@contextlib.contextmanager
+def busLock():
+    runtime = os.environ.get("XDG_RUNTIME_DIR")
+    if not runtime or not os.path.isdir(runtime):
+        with lock:
+            yield
+        return
+    with lock:
+        try:
+            fd = os.open(os.path.join(runtime, "backglow.lock"), os.O_RDWR | os.O_CREAT | os.O_CLOEXEC | os.O_NOFOLLOW, 0o600)
+        except OSError:
+            raise MonitorError("busy")
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX)
+            yield
+        finally:
+            os.close(fd)
+
+
+def openBus(bus, addr):
+    if not displayBus(bus):
+        raise MonitorError("no monitor")
+    try:
+        fd = os.open(f"/dev/i2c-{bus}", os.O_RDWR | os.O_CLOEXEC | os.O_NOFOLLOW)
     except PermissionError:
         raise MonitorError("no access")
     except OSError:
+        raise MonitorError("no monitor")
+    st = os.fstat(fd)
+    if not stat.S_ISCHR(st.st_mode) or os.major(st.st_rdev) != i2cMajor:
+        os.close(fd)
         raise MonitorError("no monitor")
     try:
         fcntl.ioctl(fd, i2cSlave, addr)
@@ -50,17 +94,18 @@ def openBus(bus, addr):
 
 
 def readEdid(bus):
-    try:
-        fd = openBus(bus, edidAddr)
-    except MonitorError:
-        return None
-    try:
-        os.write(fd, b"\x00")
-        data = os.read(fd, 128)
-    except OSError:
-        return None
-    finally:
-        os.close(fd)
+    with busLock():
+        try:
+            fd = openBus(bus, edidAddr)
+        except MonitorError:
+            return None
+        try:
+            os.write(fd, b"\x00")
+            data = os.read(fd, 128)
+        except OSError:
+            return None
+        finally:
+            os.close(fd)
     if len(data) < 128 or data[:8] != b"\x00\xff\xff\xff\xff\xff\xff\x00":
         return None
     m = (data[8] << 8) | data[9]
@@ -68,7 +113,7 @@ def readEdid(bus):
     name = ""
     for i in range(54, 126, 18):
         if data[i:i + 3] == b"\x00\x00\x00" and data[i + 3] == 0xFC:
-            name = data[i + 5:i + 18].decode("ascii", "replace").strip()
+            name = re.sub(r"[^A-Za-z0-9 ._/-]", "", data[i + 5:i + 18].decode("ascii", "replace")).strip()
     return vendor, name
 
 
@@ -76,13 +121,13 @@ def buses():
     out = []
     for p in glob.glob("/dev/i2c-*"):
         m = re.match(r"/dev/i2c-(\d+)$", p)
-        if m:
+        if m and displayBus(int(m.group(1))):
             out.append(int(m.group(1)))
     return sorted(out)
 
 
 def transact(bus, payload, reply=True):
-    with lock:
+    with busLock():
         last = MonitorError("no reply")
         for attempt in range(3):
             fd = openBus(bus, ddcAddr)
@@ -98,6 +143,9 @@ def transact(bus, payload, reply=True):
                 continue
             finally:
                 os.close(fd)
+            if len(r) < 11:
+                time.sleep(0.1)
+                continue
             n = r[1] & 0x7F
             if r[0] != 0x6E or not r[1] & 0x80 or n < 8 or n + 3 > len(r):
                 time.sleep(0.1)
