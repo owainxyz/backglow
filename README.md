@@ -98,6 +98,8 @@ Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before openin
 
 This project follows a [Code of Conduct](CODE_OF_CONDUCT.md).
 
+The UI was made with AI assistance.
+
 backglow is not affiliated with AOC or TPV. AOC and AGON are trademarks of their owners.
 
 ## License
