@@ -173,7 +173,7 @@ def write(key, value):
     setCode(bus, codes[key], value)
 
 
-whiteBalance = (1.0, 0.85, 0.6)
+whiteBalance = (1.0, 0.92, 0.8)
 
 
 def toPercent(hexColour):
