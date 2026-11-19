@@ -37,6 +37,17 @@ backglow
 
 You also need `i2c-dev` loaded and the udev rule from [`60-backglow.rules`](60-backglow.rules) installed, or the app will report **No access**.
 
+### Testing the UI headless
+
+To test the UI under Xvfb:
+
+```sh
+Xvfb :99 -screen 0 1060x720x24 &
+DISPLAY=:99 GDK_BACKEND=x11 WEBKIT_DISABLE_DMABUF_RENDERER=1 LIBGL_ALWAYS_SOFTWARE=1 ./result/bin/backglow
+```
+
+Unset `WAYLAND_DISPLAY` when doing this so the window does not open on a real desktop.
+
 ## Project layout
 
 | Path                   | Purpose                                              |
@@ -56,7 +67,35 @@ You also need `i2c-dev` loaded and the udev rule from [`60-backglow.rules`](60-b
 - No new runtime dependencies without discussion
 - UI text is short and functional: labels and one or two word status messages, no explanatory copy
 - The UI is monochrome (black and greys); do not introduce accent colours
-- Follow the rules in [AGENTS.md](AGENTS.md#device-access-rules): only display buses, only Light FX codes, validate bridge input
+- Follow the rules in the [rules below](#device-access-rules): only display buses, only Light FX codes, validate bridge input
+
+## Protocol rules
+
+Read [`docs/PROTOCOL.md`](docs/PROTOCOL.md) before touching `monitor.py`.
+
+- Only send codes on page `F8 E1` in the range `60` to `68`. Never add writes to other VCP codes, factory reset codes, or anything that was not observed on hardware.
+- Validate every value against the maximum the monitor reports before writing.
+- Keep at least 80 ms between writes; faster writes are silently dropped.
+- Writes go through the `Api` writer thread, which coalesces to the latest value per field. Do not block the JS bridge on i2c.
+
+## Device access rules
+
+- Only open i2c buses that `displayBus()` accepts: the adapter must sit under a PCI display-class device (`0x03xxxx`). Never probe SMBus or other i2c buses; writing to address `0x50` on SMBus can reach RAM SPD EEPROMs.
+- Open device nodes with `O_NOFOLLOW` and `O_CLOEXEC`, and check they are i2c character devices (major 89).
+- All bus traffic goes through `busLock()`, which serialises threads and processes.
+- Only talk DDC/CI to a bus whose EDID vendor is `AOC` and which answers the Light FX effect query.
+
+## UI to Python bridge
+
+- Every public method on `Api` is callable from JavaScript. Prefix internal helpers with `_` and validate every argument.
+- Colour values cross the bridge as `#rrggbb` strings only.
+- Errors from the writer thread are pushed to `window.onWriteError`.
+
+## Security rules
+
+- Keep the Content Security Policy in `page()` strict. Do not add `unsafe-inline` to `script-src`, inline event handler attributes, or any network source.
+- Render strings with `textContent`, never `innerHTML`.
+- The app makes no network requests and opens no ports. Keep it that way.
 
 ## Testing
 

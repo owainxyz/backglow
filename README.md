@@ -1,10 +1,10 @@
 # backglow
 
-The UI was made with AI assistance.
-
 Light FX control for **AOC AGON** monitors on Linux.
 
 AOC's G-Menu is Windows-only. backglow drives the monitor's rear lighting directly over DDC/CI, the same channel the display cable already uses for brightness and input switching, so it needs no vendor software, no USB cable and no kernel driver.
+
+> **The UI was made with AI assistance.**
 
 ![backglow](screenshot.png)
 
@@ -96,7 +96,7 @@ AOC exposes Light FX as manufacturer-specific DDC/CI features with three-byte co
 
 ## Contributing
 
-Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request, and see [AGENTS.md](AGENTS.md) if you use a coding agent. Security issues should be reported as described in [SECURITY.md](SECURITY.md).
+Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. Security issues should be reported as described in [SECURITY.md](SECURITY.md).
 
 This project follows a [Code of Conduct](CODE_OF_CONDUCT.md).
 
